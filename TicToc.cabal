@@ -19,6 +19,11 @@ executable TicToc
   main-is:             Main.hs
   -- other-modules:
   -- other-extensions:
-  build-depends:       base >=4.8 && <4.9, HTTP, http-conduit, http-types, http-client, network, http-streams, io-streams, bytestring, transformers, connection
+  build-depends:       base >=4.8 && <4.9, HTTP, http-conduit, http-types, http-client, network, http-streams, io-streams, bytestring, transformers, connection, case-insensitive
   -- hs-source-dirs:
   default-language:    Haskell2010
+
+-- test-suite TicToc-test
+--       type:       exitcode-stdio-1.0
+--       main-is:    MainSpec.hs
+--       build-depends: base, hspec

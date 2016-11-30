@@ -1,152 +1,81 @@
 {-# LANGUAGE OverloadedStrings #-}
+import System.Environment
 import qualified Data.ByteString.Lazy.Char8 as L8
-import           Network.HTTP.Simple
+import qualified Data.ByteString.Char8 as D
+import  Network.HTTP.Simple
 
 main :: IO ()
 main = do
-  -- play 5
+    args <- getArgs
 
-    let body = L8.pack $ makeMove ""
-    let request
-         = setRequestMethod "POST"
-         $ setRequestPath "/game/abcd/player/1"
-         $ setRequestHeaders [("Content-Type","application/json+list")]
-         $ setRequestBodyLBS body
-         $ request'
-    response <- httpLBS request
-    -- print response
+    let game = (args !! 0)
+    let player = (args !! 1)
+    let host = "http://tictactoe.homedir.eu"
+    let path = "/game/" ++ game ++ "/player/"++ player
+    play player host path 1
 
-    -- let gameName = "nespesiuAntDeadline"
-    -- print gameName
-    -- let path = "/game/" ++ gameName ++ "/player/1"
-    ----------------------------------------------------------------------------------------
-    request' <- parseRequest "http://tictactoe.homedir.eu"
-    let request
-         = setRequestMethod "GET"
-         $ setRequestPath "/game/aa/player/1"
-         $ setRequestHeaders [("Accept","application/json+list")]
-         $ request'
-    response <- httpLBS request
-    print response
+botPlayer :: Char
+botPlayer = 'x'
 
-    request' <- parseRequest "http://tictactoe.homedir.eu"
+enemy :: Char
+enemy = 'o'
 
-    let body = L8.pack $ makeMove $ L8.unpack $ getResponseBody response
-    let request
-         = setRequestMethod "POST"
-         $ setRequestPath "/game/aa/player/1"
-         $ setRequestHeaders [("Content-Type","application/json+list")]
-         $ setRequestBodyLBS body
-         $ request'
-    response <- httpLBS request
-    print response
-    ----------------------------------------------------------------------------------------
-    request' <- parseRequest "http://tictactoe.homedir.eu"
-    let request
-         = setRequestMethod "GET"
-         $ setRequestPath "/game/aa/player/1"
-         $ setRequestHeaders [("Accept","application/json+list")]
-         $ request'
-    response <- httpLBS request
-    print response
+play :: String -> String -> String -> Int ->  IO()
+play player host path turn= do
+  if player == "1" && turn == 1
+    then do
+      let body = L8.pack $ makeMove ""
+      postResponse <- postRequest host path body
+      print postResponse
+      play player host path (turn + 1)
+    else do
+      getResponse <- getRequest host path
+      if (getResponseStatusCode getResponse) /= 200
+        then print "DONE"
+        else do
+          let body = L8.pack $ makeMove $ L8.unpack $ getResponseBody getResponse
+          postResponse <- postRequest host path body
+          play player host path (turn + 1)
 
-    request' <- parseRequest "http://tictactoe.homedir.eu"
+postRequest :: String -> String -> L8.ByteString -> IO (Response L8.ByteString)
+postRequest host path body = do
+  request' <- parseRequest host
+  let bytePath =  D.pack path
+  let request
+       = setRequestMethod "POST"
+       $ setRequestPath bytePath
+       $ setRequestHeaders [("Content-Type","application/json+list")]
+       $ setRequestBodyLBS body
+       $ request'
+  response <- httpLBS request
+  return response
 
-    let body = L8.pack $ makeMove $ L8.unpack $ getResponseBody response
-    let request
-         = setRequestMethod "POST"
-         $ setRequestPath "/game/aa/player/1"
-         $ setRequestHeaders [("Content-Type","application/json+list")]
-         $ setRequestBodyLBS body
-         $ request'
-    response <- httpLBS request
-    print response
-    ----------------------------------------------------------------------------------------
-    request' <- parseRequest "http://tictactoe.homedir.eu"
-    let request
-         = setRequestMethod "GET"
-         $ setRequestPath "/game/aa/player/1"
-         $ setRequestHeaders [("Accept","application/json+list")]
-         $ request'
-    response <- httpLBS request
-    print response
-
-    request' <- parseRequest "http://tictactoe.homedir.eu"
-
-    let body = L8.pack $ makeMove $ L8.unpack $ getResponseBody response
-    let request
-         = setRequestMethod "POST"
-         $ setRequestPath "/game/aa/player/1"
-         $ setRequestHeaders [("Content-Type","application/json+list")]
-         $ setRequestBodyLBS body
-         $ request'
-    response <- httpLBS request
-    print response
-    ----------------------------------------------------------------------------------------
-    request' <- parseRequest "http://tictactoe.homedir.eu"
-    let request
-         = setRequestMethod "GET"
-         $ setRequestPath "/game/aa/player/1"
-         $ setRequestHeaders [("Accept","application/json+list")]
-         $ request'
-    response <- httpLBS request
-    print response
-
-    request' <- parseRequest "http://tictactoe.homedir.eu"
-
-    let body = L8.pack $ makeMove $ L8.unpack $ getResponseBody response
-    let request
-         = setRequestMethod "POST"
-         $ setRequestPath "/game/aa/player/1"
-         $ setRequestHeaders [("Content-Type","application/json+list")]
-         $ setRequestBodyLBS body
-         $ request'
-    response <- httpLBS request
-    print response
-    --
-    -- main
-  -- PIRMAS ZINGSNIS --------------------------------------------------------------------
-    -- request' <- parseRequest "http://tictactoe.homedir.eu"
-    -- let request
-    --      = setRequestMethod "GET"
-    --      $ setRequestPath "/game/nespesiuAntDeadline/player/2"
-    --      $ setRequestHeaders [("Accept","application/json+list")]
-    --      $ request'
-    -- response <- httpLBS request
-    -- print response
-    --
-    -- request' <- parseRequest "http://tictactoe.homedir.eu"
-    -- -- let body = L8.pack $ makeMove ""
-    -- let body = L8.pack $ makeMove $ L8.unpack $ getResponseBody response
-    -- let request
-    --      = setRequestMethod "POST"
-    --      $ setRequestPath "/game/nespesiuAntDeadline/player/2"
-    --      $ setRequestHeaders [("Content-Type","application/json+list")]
-    --      $ setRequestBodyLBS body
-    --      $ request'
-    -- response <- httpLBS request
-    -- print response
-
--- play :: IO() -> In/t -> Int
--- play moves = do
-  -- print moves
+getRequest :: String -> String -> IO (Response L8.ByteString)
+getRequest host path = do
+  request' <- parseRequest host
+  let bytePath = D.pack path
+  let request
+       = setRequestMethod "GET"
+       $ setRequestPath bytePath
+       $ setRequestHeaders [("Accept","application/json+list")]
+       $ request'
+  response <- httpLBS request
+  return response
 
 makeMove :: String -> String
-makeMove "" = "[[\"x\", 1, \"y\",   1, \"v\", \"x\"]]"
+makeMove "" = "[[\"x\", 1, \"y\",   1, \"v\", \""++ (charToString botPlayer) ++ "\"]]"
 makeMove msg =
   let
     moves = parse msg
     status = defend moves
     nextMove = if status /= "free"
       then init msg ++ "," ++ status ++ "]"
-      -- then init msg ++ "," ++ tail status
-      else init msg ++ "," ++ (makeRandomMove moves 0 0) ++ "]"
-        -- makeRandomMove moves
+      else init msg ++ "," ++ (makeRandomDiagMove moves 0 0) ++ "]"
   in
     nextMove
 
 makeRandomMove :: Moves -> Int -> Int -> String
-makeRandomMove moves 3 3 = "no moves left"
+makeRandomMove moves 3 y = "no moves left"
 makeRandomMove moves x 3 = makeRandomMove moves (x+1) 0
 makeRandomMove moves x y =
   let
@@ -154,6 +83,20 @@ makeRandomMove moves x y =
     nextMove = if l == 0
       then "[\"x\"," ++ (intToString x) ++ ", \"y\"," ++ (intToString y) ++ ", \"v\", \"" ++ (charToString botPlayer) ++ "\"]"
       else makeRandomMove moves x (y+1)
+  in
+    nextMove
+
+makeRandomDiagMove :: Moves -> Int -> Int -> String
+makeRandomDiagMove moves 4 y = makeRandomMove moves 0 0
+makeRandomDiagMove moves x 4 = makeRandomDiagMove moves (x+2) 0
+makeRandomDiagMove moves x y =
+  let
+    l = length $ filter (\(a,b,player) -> a == x && b == y) moves
+    nextMove = if ((length $ filter (\(a,b,player) -> a == 1 && b == 1) moves) /= 0 && botPlayer == 'o')
+      then makeRandomMove moves 0 0
+      else if l == 0
+        then "[\"x\"," ++ (intToString x) ++ ", \"y\"," ++ (intToString y) ++ ", \"v\", \"" ++ (charToString botPlayer) ++ "\"]"
+        else makeRandomDiagMove moves x (y+2)
   in
     nextMove
 
@@ -172,9 +115,9 @@ defend moves =
                 else "free"
   in
     nextMove
--- makeMove (msg:rest) =  rest
+
 message :: String
-message = "[[\"x\", 2, \"y\",   2, \"v\", \"x\"], [\"x\",  1,   \"y\",   1, \"v\", \"x\"], [\"x\", 2,  \"y\",  1,   \"v\", \"x\"],  [\"x\",   1,  \"y\",  0, \"v\", \"o\"],   [\"x\",  0,  \"y\",   2, \"v\", \"o\"]]"
+message = "[[\"x\", 0, \"y\",   0, \"v\", \"x\"],[\"x\", 2, \"y\",   2, \"v\", \"x\"], [\"x\",  1,   \"y\",   1, \"v\", \"x\"], [\"x\", 2,  \"y\",  1,   \"v\", \"x\"],  [\"x\",   1,  \"y\",  0, \"v\", \"o\"],   [\"x\",  0,  \"y\",   2, \"v\", \"o\"],   [\"x\", 2,  \"y\",   0, \"v\", \"o\"],   [\"x\",0,  \"y\",   1, \"v\", \"o\"],   [\"x\",1,  \"y\",   2, \"v\", \"o\"]]"
 
 message1 :: String
 message1 = "[[\"x\", 0, \"y\",  1, \"v\", \"x\"], [\"x\",  1,   \"y\",   0, \"v\", \"o\"], [\"x\", 0,  \"y\",  2,   \"v\", \"x\"],  [\"x\",   1,  \"y\",  1, \"v\", \"o\"]]"
@@ -191,19 +134,8 @@ message4 = "[[\"x\", 1, \"y\",  1, \"v\", \"x\"], [\"x\",  1,   \"y\",   2, \"v\
 message5 :: String
 message5 = "[[\"x\", 1, \"y\",  0, \"v\", \"x\"], [\"x\",  0,   \"y\",   2, \"v\", \"o\"], [\"x\", 2,  \"y\",  2,   \"v\", \"x\"],  [\"x\",   1,  \"y\",  1, \"v\", \"o\"]]"
 
-message6 :: String
-message6 = "[[\"x\", 0, \"y\",  1, \"v\", \"x\"], [\"x\",  0,   \"y\",   0, \"v\", \"o\"], [\"x\", 2,  \"y\",  1,   \"v\", \"x\"],  [\"x\",   1,  \"y\",  1, \"v\", \"o\"],  [\"x\",   0,  \"y\",  2, \"v\", \"o\"],  [\"x\",   1,  \"y\",  0, \"v\", \"x\"],  [\"x\",   1,  \"y\",  2, \"v\", \"o\"], [\"x\",   2,  \"y\",  0, \"v\", \"o\"]]"
--- message :: String
-
-
 move :: String
 move = "[[\"x\", 1, \"y\",   2, \"v\", \"x\"]]"
-
-botPlayer :: Char
-botPlayer = 'x'
-
-enemy :: Char
-enemy = 'o'
 
 
 type Move = (Int, Int, Char)
@@ -213,6 +145,8 @@ intToString :: Int -> String
 intToString 0 = "0"
 intToString 1 = "1"
 intToString 2 = "2"
+intToString 3 = "3"
+intToString 4 = "4"
 
 charToString :: Char -> String
 charToString c = [c]
